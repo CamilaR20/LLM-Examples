@@ -1,0 +1,33 @@
+name: hf
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9
+  - pip
+  - nvidia::libcusparse=11.7.3.50
+  - pip:
+    - --extra-index-url https://download.pytorch.org/whl/cu118
+    - torch==2.1.0+cu118
+    - transformers
+    - accelerate
+    - bitsandbytes
+    - datasets
+    - evaluate
+    - torchmetrics
+    - scipy
+    - scikit-learn
+    - matplotlib
+    - pandas
+    - openai
+    - anthropic
+    - sentencepiece
+
+# conda remove --name hf --all
+# conda env create -f environment.yml 
+
+# To use V100 GPU: pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# https://stackoverflow.com/questions/73287475/how-to-specify-pip-extra-index-url-in-environment-yml
+# Using miniconda3 bitsandbytes works with: conda install libcusparse=11.7.3.50 -c nvidia
+
+# For mac with MPS, use: pip3 install -U --pre torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/nightly/cpu
