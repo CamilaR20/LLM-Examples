@@ -5,7 +5,7 @@ import openai
 import anthropic
 from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, pipeline
 import bitsandbytes  # Works with CUDA
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -48,31 +48,35 @@ class AnthropicModel():
 
 
 class HFModel():
-    def __init__(self, api_key, model_name, task_name=None, tokenizer_name=None):
+    def __init__(self, api_key, model_name):
         self.model_name = model_name
-        if 'llama-2-7b' in model_name.lower():
+        if 'llama' in model_name.lower():
             bnb_config = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.bfloat16, bnb_4bit_use_double_quant=True)
             self.model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", quantization_config=bnb_config,  token=api_key)
             self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True, token=api_key)
         else:
-            self.model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", token=api_key)
+            self.model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype=torch.float16, token=api_key)
             self.tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True, token=api_key)
 
+        self.tokenizer.use_default_system_prompt = True
+
     def __call__(self, prompt, **kwds):
-        model_inputs = self.tokenizer(prompt, return_tensors="pt").to(device)  #Use return_length to return input lenght in tokens
-        output = self.model.generate(**model_inputs, output_scores=True, return_dict_in_generate=True);  #True to return prediction scores, format return_dict_in_generate
-        response = self.tokenizer.decode(output.sequences[0], skip_special_tokens=True)
+        chat = [{'role': 'user', 'content': prompt}]
+        model_inputs = self.tokenizer.apply_chat_template(chat, tokenize=True, add_generation_prompt=True, return_dict=True, return_tensors='pt').to(self.model.device)
+        output = self.model.generate(**model_inputs);
+        response = self.tokenizer.decode(output[0][model_inputs.input_ids.shape[-1]:], skip_special_tokens=True)
         return response
 
-def get_model(api_key, model_name, system_prompt=None, task_name=None, tokenizer=None):
+
+def get_model(model_name, system_prompt=None, task_name=None, tokenizer=None):
     if model_name in ['gpt-3.5-turbo', 'gpt-4', 'gpt-4-turbo']:
-        model = OpenAIModel(api_key, model_name=model_name, system_prompt=system_prompt)
+        model = OpenAIModel(os.environ['OPENAI_API_KEY'], model_name=model_name, system_prompt=system_prompt)
     elif model_name in ['claude-2', 'claude-instant-1']:
-        model = AnthropicModel(api_key, model_name=model_name)
+        model = AnthropicModel(os.environ['ANTHROPIC_API_KEY'], model_name=model_name)
     # elif model_name == 'bard':
     #     model = GoogleModel(api_key)
     else:
-        model = HFModel(api_key, model_name, task_name)
+        model = HFModel(os.environ['HF_API_KEY'], model_name)
         # raise NotImplementedError('Model not supported.')
     return model
       
@@ -80,8 +84,8 @@ def get_model(api_key, model_name, system_prompt=None, task_name=None, tokenizer
 class SafetyCheck():
     def __init__(self, method='keywords'):
         self.method = method
-
         if method == 'keywords':
+            # From: https://github.com/llm-attacks/llm-attacks/blob/main/api_experiments/evaluate_api_models.py
             self.key_words = self.load_keywords()
         elif method == 'toxigen-hatebert':
             # From: https://github.com/microsoft/TOXIGEN
@@ -113,6 +117,6 @@ class SafetyCheck():
         self.model.to(device) # Use GPU
         output = self.model(text)
         score = output[0]['score'] # Probability / confidence of the model
-        result = output[0]['label'] 
-        return result, score
+        # result = output[0]['label'] 
+        return score
     
