@@ -1,10 +1,9 @@
-# Transformer Examples
+# Transformer-Based Models Examples
 Text generation examples with Hugging Face Transformers library and commercial APIs.
 
 ## **Installation**
 ### Using a local machine
 You can use Miniconda to setup the environment.
-
 ```
 conda env create -f environment.yml 
 ``` 
