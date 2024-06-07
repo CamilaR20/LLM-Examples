@@ -3,10 +3,9 @@ Text generation examples with Hugging Face Transformers library and commercial A
 
 ## **Installation**
 ### Using a local machine
-You can use Miniconda to setup the environment. To install it, you can follow the instructions [here](https://docs.conda.io/projects/miniconda/en/latest/index.html#quick-command-line-install).
+You can use Miniconda to setup the environment.
 
 ```
-git clone --recursive https://github.com/CamilaR20/LLMs.git
 conda env create -f environment.yml 
 ``` 
 
