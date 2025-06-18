@@ -5,13 +5,13 @@ channels:
 dependencies:
   - python=3.9
   - pip
-  - nvidia::libcusparse=11.7.3.50
+ # - nvidia::libcusparse=11.7.3.50 # Uncomment for V100
   - pip:
-    - --extra-index-url https://download.pytorch.org/whl/cu118
-    - torch==2.1.0+cu118
+    - --extra-index-url https://download.pytorch.org/whl/nightly/cpu # Change to appropriate URL to run on macOS or with V100
+    - torch # ==2.1.0+cu118 uncomment for V100
     - transformers
     - accelerate
-    - bitsandbytes
+#    - bitsandbytes # Uncomment for V100
     - datasets
     - evaluate
     - torchmetrics
